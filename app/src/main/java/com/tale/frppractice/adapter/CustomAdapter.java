@@ -10,11 +10,6 @@ public abstract class CustomAdapter<T> extends BaseAdapter {
     private List<T> data;
 
     public void add(T item) {
-        addSilent(item);
-        notifyDataSetChanged();
-    }
-
-    public void addSilent(T item) {
         if (data == null) {
             data = new ArrayList<T>();
         }

@@ -11,6 +11,8 @@ import com.squareup.picasso.Picasso;
 import com.tale.frppractice.R;
 import com.tale.frppractice.data.pojo.People;
 
+import timber.log.Timber;
+
 /**
  * Created by TALE on 10/9/2014.
  */
@@ -28,6 +30,7 @@ public class PeopleAdapter extends CustomAdapter<People> {
 
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
+        Timber.d("getView => position: %d", position);
         ViewHolder viewHolder;
         if (convertView == null) {
             convertView = layoutInflater.inflate(R.layout.item_people, parent, false);

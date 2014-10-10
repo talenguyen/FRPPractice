@@ -1,8 +1,7 @@
 package com.tale.frppractice;
 
-import android.net.Uri;
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -20,7 +19,10 @@ import com.tale.frppractice.data.pojo.People;
 import java.util.List;
 
 import rx.Observable;
+import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Func1;
+import rx.schedulers.Schedulers;
+import timber.log.Timber;
 
 
 public class MyActivity extends ActionBarActivity {
@@ -41,26 +43,47 @@ public class MyActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_my);
         initData();
-        initStream();
         initUi();
+        initStream();
     }
 
     private void initStream() {
         requestStream = ViewObservableHelper.clickFrom(findViewById(R.id.btRefresh))
-                .map(view -> System.currentTimeMillis() % 500)
+                .map((view) -> {
+                    final long request = System.currentTimeMillis() % 500;
+                    Timber.d("onRefreshClicked=> request: %d", request);
+                    return request;
+                })
                 .startWith(0l);
-        responseStream = requestStream.flatMap((since) -> webServices.getUsers(since));
+        responseStream = requestStream.flatMap(new Func1<Long, Observable<? extends List<People>>>() {
+            @Override
+            public Observable<? extends List<People>> call(Long since) {
+                Timber.d("requestStreamFlatMap=> request: %d", since);
+                return webServices.getUsers(since);
+            }
+        });
+
         suggestion = responseStream.map((people) -> {
             final int index = (int) (System.currentTimeMillis() % people.size());
-            return people.get(index);
+            final People person = people.get(index);
+            Timber.d("Suggestion=> people's size: %d, Random index: %d, person: %s", people.size(), index, person.login);
+            return person;
         });
+
+        suggestion
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe((person) -> {
+                    Timber.d("Subscribed=> person: %s", person.login);
+                    peopleAdapter.add(person);
+                    peopleAdapter.notifyDataSetChanged();
+                });
     }
 
     private void initUi() {
         peopleAdapter = new PeopleAdapter(getApplication(), picasso);
         lvPeople = ((ListView) findViewById(R.id.lvPeople));
         lvPeople.setAdapter(peopleAdapter);
-        suggestion.subscribe((person) -> peopleAdapter.add(person));
     }
 
     private void initData() {
