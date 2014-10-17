@@ -19,8 +19,8 @@ import com.tale.frppractice.data.pojo.People;
 import java.util.List;
 
 import rx.Observable;
+import rx.android.observables.ViewObservable;
 import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 import timber.log.Timber;
 
@@ -48,19 +48,16 @@ public class MyActivity extends ActionBarActivity {
     }
 
     private void initStream() {
-        requestStream = ViewObservableHelper.clickFrom(findViewById(R.id.btRefresh))
+        requestStream = ViewObservable.clicks(findViewById(R.id.btRefresh), false)
                 .map((view) -> {
                     final long request = System.currentTimeMillis() % 500;
                     Timber.d("onRefreshClicked=> request: %d", request);
                     return request;
                 })
                 .startWith(0l);
-        responseStream = requestStream.flatMap(new Func1<Long, Observable<? extends List<People>>>() {
-            @Override
-            public Observable<? extends List<People>> call(Long since) {
-                Timber.d("requestStreamFlatMap=> request: %d", since);
-                return webServices.getUsers(since);
-            }
+        responseStream = requestStream.flatMap((since) -> {
+            Timber.d("requestStreamFlatMap=> request: %d", since);
+            return webServices.getUsers(since);
         });
 
         suggestion = responseStream.map((people) -> {
